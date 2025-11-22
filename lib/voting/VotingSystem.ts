@@ -1,12 +1,8 @@
 import { Blockchain, Transaction } from '../blockchain';
+import type { Election, Position, Candidate, VoteOption } from './types';
 
-export interface VoteOption {
-  id: string;
-  label: string;
-  description?: string;
-}
-
-export interface Election {
+// Legacy interface for backward compatibility
+export interface LegacyElection {
   id: string;
   title: string;
   description: string;
@@ -35,15 +31,17 @@ export class VotingSystem {
     id: string,
     title: string,
     description: string,
-    options: VoteOption[],
+    positions: Position[],
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    schoolId?: string
   ): Election {
     const election: Election = {
       id,
       title,
       description,
-      options,
+      positions,
+      schoolId,
       startDate,
       endDate,
       isActive: new Date() >= startDate && new Date() <= endDate,
@@ -54,6 +52,31 @@ export class VotingSystem {
       this.currentElectionId = id;
     }
     return election;
+  }
+
+  // Legacy method for backward compatibility
+  createLegacyElection(
+    id: string,
+    title: string,
+    description: string,
+    options: VoteOption[],
+    startDate: Date,
+    endDate: Date
+  ): Election {
+    // Convert legacy options to positions
+    const positions: Position[] = [
+      {
+        id: 'position-1',
+        title: 'Vote',
+        candidates: options.map(opt => ({
+          id: opt.id,
+          name: opt.label,
+          description: opt.description,
+        })),
+      },
+    ];
+
+    return this.createElection(id, title, description, positions, startDate, endDate);
   }
 
   getElection(id: string): Election | undefined {
@@ -69,6 +92,10 @@ export class VotingSystem {
     return Array.from(this.elections.values());
   }
 
+  getElectionsBySchool(schoolId: string): Election[] {
+    return this.getAllElections().filter(e => e.schoolId === schoolId);
+  }
+
   setCurrentElection(id: string): boolean {
     if (this.elections.has(id)) {
       this.currentElectionId = id;
@@ -77,15 +104,22 @@ export class VotingSystem {
     return false;
   }
 
-  castVote(voterId: string, optionId: string): boolean {
+  // Vote for a candidate in a position
+  castVote(voterId: string, positionId: string, candidateId: string): boolean {
     const election = this.getCurrentElection();
     if (!election || !election.isActive) {
       return false;
     }
 
-    // Validate option exists
-    const option = election.options.find(opt => opt.id === optionId);
-    if (!option) {
+    // Validate position exists
+    const position = election.positions.find(p => p.id === positionId);
+    if (!position) {
+      return false;
+    }
+
+    // Validate candidate exists
+    const candidate = position.candidates.find(c => c.id === candidateId);
+    if (!candidate) {
       return false;
     }
 
@@ -94,10 +128,13 @@ export class VotingSystem {
       this.blockchain.registerVoter(voterId);
     }
 
-    // Create transaction
+    // Create transaction with position and candidate info
+    // Format: positionId:candidateId
+    const voteOption = `${positionId}:${candidateId}`;
+    
     const transaction: Transaction = {
       voterId,
-      vote: optionId,
+      vote: voteOption,
       timestamp: Date.now(),
     };
 
@@ -105,14 +142,32 @@ export class VotingSystem {
     const success = this.blockchain.addTransaction(transaction);
     
     if (success) {
-      // Mine the block immediately for demo purposes (in production, this would be different)
       this.blockchain.minePendingTransactions('miner');
     }
 
     return success;
   }
 
-  getResults(electionId?: string): Record<string, number> {
+  // Legacy vote method for backward compatibility
+  castLegacyVote(voterId: string, optionId: string): boolean {
+    const election = this.getCurrentElection();
+    if (!election || !election.isActive) {
+      return false;
+    }
+
+    // Try to find option in first position (legacy support)
+    if (election.positions.length > 0) {
+      const position = election.positions[0];
+      const candidate = position.candidates.find(c => c.id === optionId);
+      if (candidate) {
+        return this.castVote(voterId, position.id, candidate.id);
+      }
+    }
+
+    return false;
+  }
+
+  getResults(electionId?: string): Record<string, Record<string, number>> {
     const election = electionId 
       ? this.getElection(electionId)
       : this.getCurrentElection();
@@ -122,22 +177,59 @@ export class VotingSystem {
     }
 
     const allCounts = this.blockchain.getVoteCounts();
-    const results: Record<string, number> = {};
+    const results: Record<string, Record<string, number>> = {};
 
-    // Filter counts to only include valid options for this election
-    election.options.forEach(option => {
-      results[option.id] = allCounts[option.id] || 0;
+    // Process results per position
+    election.positions.forEach(position => {
+      results[position.id] = {};
+      
+      position.candidates.forEach(candidate => {
+        // Count votes for this candidate in this position
+        const voteOption = `${position.id}:${candidate.id}`;
+        results[position.id][candidate.id] = allCounts[voteOption] || 0;
+      });
     });
 
     return results;
+  }
+
+  // Legacy results method
+  getLegacyResults(electionId?: string): Record<string, number> {
+    const positionResults = this.getResults(electionId);
+    
+    // Convert to legacy format (first position only)
+    const firstPosition = Object.keys(positionResults)[0];
+    if (firstPosition) {
+      return positionResults[firstPosition];
+    }
+    
+    return {};
   }
 
   hasVoted(voterId: string): boolean {
     return this.blockchain.hasVoted(voterId);
   }
 
+  hasVotedInPosition(voterId: string, positionId: string): boolean {
+    const election = this.getCurrentElection();
+    if (!election) return false;
+
+    const votes = this.blockchain.getAllVotes();
+    const positionVotePattern = `${positionId}:`;
+    
+    return votes.some(vote => 
+      vote.voterId === voterId && vote.vote.startsWith(positionVotePattern)
+    );
+  }
+
   getTotalVotes(): number {
     return this.blockchain.getAllVotes().length;
+  }
+
+  getVotesForPosition(positionId: string): number {
+    const votes = this.blockchain.getAllVotes();
+    const positionVotePattern = `${positionId}:`;
+    return votes.filter(vote => vote.vote.startsWith(positionVotePattern)).length;
   }
 
   getBlockCount(): number {
@@ -148,3 +240,6 @@ export class VotingSystem {
     return this.blockchain.isChainValid();
   }
 }
+
+// Re-export types
+export type { Election, Position, Candidate, VoteOption } from './types';

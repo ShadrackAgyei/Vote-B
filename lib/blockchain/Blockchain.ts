@@ -48,10 +48,8 @@ export class Blockchain {
       return false;
     }
 
-    // Check if voter has already voted
-    if (this.hasVoted(transaction.voterId)) {
-      return false;
-    }
+    // Note: Position-specific voting validation is handled at the VotingSystem level
+    // This allows voters to vote once per position in multi-position elections
 
     this.pendingTransactions.push(transaction);
     return true;

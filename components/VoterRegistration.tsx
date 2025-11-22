@@ -6,10 +6,11 @@ import { isValidEmail, normalizeEmail, generateVerificationCode, sendVerificatio
 
 interface VoterRegistrationProps {
   electionId: string;
+  schoolId?: string;
   onRegistered: (email: string) => void;
 }
 
-export default function VoterRegistration({ electionId, onRegistered }: VoterRegistrationProps) {
+export default function VoterRegistration({ electionId, schoolId, onRegistered }: VoterRegistrationProps) {
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [step, setStep] = useState<'email' | 'verify'>('email');
@@ -32,9 +33,9 @@ export default function VoterRegistration({ electionId, onRegistered }: VoterReg
     const normalizedEmail = normalizeEmail(email);
 
     // Check if already registered
-    if (Storage.isVoterRegistered(normalizedEmail, electionId)) {
+    if (Storage.isVoterRegistered(normalizedEmail, electionId, schoolId)) {
       // Check if already verified
-      if (Storage.isVoterVerified(normalizedEmail, electionId)) {
+      if (Storage.isVoterVerified(normalizedEmail, electionId, schoolId)) {
         setError('This email is already registered and verified. You can now vote.');
         setLoading(false);
         setTimeout(() => {
@@ -52,7 +53,7 @@ export default function VoterRegistration({ electionId, onRegistered }: VoterReg
     }
 
     // Register voter
-    const registered = Storage.registerVoter(normalizedEmail, electionId);
+    const registered = Storage.registerVoter(normalizedEmail, electionId, schoolId);
     
     if (!registered) {
       setError('Failed to register. Please try again.');
@@ -84,7 +85,7 @@ export default function VoterRegistration({ electionId, onRegistered }: VoterReg
 
     if (isValid) {
       // Mark voter as verified
-      Storage.verifyVoter(normalizedEmail, electionId);
+      Storage.verifyVoter(normalizedEmail, electionId, schoolId);
       clearVerificationCode(normalizedEmail, electionId);
       setSuccess(true);
       setLoading(false);

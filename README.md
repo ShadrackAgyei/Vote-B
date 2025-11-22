@@ -111,18 +111,29 @@ Vote-B/
 
 ### Security Features
 
+- **Admin Authentication**: Password-protected admin dashboard
 - Email-based voter registration with verification
 - Each voter can only vote once per election (checked by email)
 - Votes are immutable once recorded on the blockchain
 - Cryptographic hashing ensures data integrity
 - Chain validation prevents tampering
 - Voter verification required before voting
+- Session-based admin authentication (24-hour sessions)
 
 ## Usage
 
-### Creating a New Election
+### Admin Access
 
 1. Navigate to `/admin` page
+2. Enter admin password (default: `admin123` for development)
+3. You'll stay logged in for 24 hours
+4. Click "Logout" to end your session
+
+**Important:** Change the default password in production by setting the `NEXT_PUBLIC_ADMIN_PASSWORD` environment variable.
+
+### Creating a New Election
+
+1. Navigate to `/admin` page and log in
 2. Click "Create New Election"
 3. Fill in:
    - Election Title
@@ -147,6 +158,16 @@ Currently, verification codes are logged to the console for demo purposes. To en
 1. Integrate an email service (SendGrid, Resend, AWS SES, etc.)
 2. Update `lib/utils/email.ts` -> `sendVerificationEmail()` function
 3. Configure environment variables for email service credentials
+
+### Admin Password Configuration
+
+For production, set a secure admin password:
+
+1. Create a `.env.local` file in the project root
+2. Add: `NEXT_PUBLIC_ADMIN_PASSWORD=your-secure-password-here`
+3. Restart the development server
+
+**Security Note:** For production deployments, consider implementing server-side authentication instead of client-side password checking.
 
 ### Adjusting Blockchain Difficulty
 
