@@ -242,7 +242,7 @@ export default function VotingInterface({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm text-blue-900">
-            <strong>Voting Instructions:</strong> Select a candidate for each position and click "Vote" for that position. 
+            <strong>Voting Instructions:</strong> Select a candidate for each position and click &quot;Vote&quot; for that position.
             Your votes will be recorded immutably on the blockchain. Once cast, they cannot be changed.
           </div>
         </div>

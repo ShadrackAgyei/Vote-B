@@ -16,6 +16,8 @@ import SchoolSelector from '@/components/admin/SchoolSelector';
 function AdminDashboard() {
   const [votingSystem] = useState(() => new VotingSystem());
   const [elections, setElections] = useState<StoredElection[]>([]);
+  const [currentElectionId, setCurrentElectionId] = useState<string | null>(null);
+  const [voterCounts, setVoterCounts] = useState<Record<string, number>>({});
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -40,15 +42,15 @@ function AdminDashboard() {
     loadElections(currentSchool?.id);
   }, []);
 
-  const loadElections = (schoolId?: string) => {
-    const stored = Storage.getAllElections(schoolId);
+  const loadElections = async (schoolId?: string) => {
+    const stored = await Storage.getAllElections(schoolId);
     setElections(stored);
 
     // Load elections into voting system
     stored.forEach(storedElection => {
       // Migrate legacy elections if needed
       const migrated = Storage.migrateLegacyElection(storedElection);
-      
+
       const election: Election = {
         id: migrated.id,
         title: migrated.title,
@@ -57,10 +59,10 @@ function AdminDashboard() {
         schoolId: migrated.schoolId,
         startDate: new Date(migrated.startDate),
         endDate: new Date(migrated.endDate),
-        isActive: new Date() >= new Date(migrated.startDate) && 
+        isActive: new Date() >= new Date(migrated.startDate) &&
                   new Date() <= new Date(migrated.endDate),
       };
-      
+
       votingSystem.createElection(
         election.id,
         election.title,
@@ -72,11 +74,20 @@ function AdminDashboard() {
       );
     });
 
-    // Set current election if exists
-    const currentId = Storage.getCurrentElectionId();
+    // Load current election ID
+    const currentId = await Storage.getCurrentElectionId();
+    setCurrentElectionId(currentId);
     if (currentId) {
       votingSystem.setCurrentElection(currentId);
     }
+
+    // Load voter counts for all elections
+    const counts: Record<string, number> = {};
+    for (const election of stored) {
+      const voters = await Storage.getElectionVoters(election.id, schoolId);
+      counts[election.id] = voters.length;
+    }
+    setVoterCounts(counts);
   };
 
   const resetForm = () => {
@@ -118,7 +129,7 @@ function AdminDashboard() {
     setPositions(positions.map(p => (p.id === positionId ? updatedPosition : p)));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -190,8 +201,8 @@ function AdminDashboard() {
     };
 
     // Save to storage
-    Storage.saveElection(election);
-    
+    await Storage.saveElection(election);
+
     // Add to voting system
     votingSystem.createElection(
       election.id,
@@ -204,12 +215,12 @@ function AdminDashboard() {
     );
 
     // Set as current if it's the first one
-    if (!Storage.getCurrentElectionId()) {
-      Storage.setCurrentElection(electionId);
+    if (!(await Storage.getCurrentElectionId())) {
+      await Storage.setCurrentElection(electionId);
       votingSystem.setCurrentElection(electionId);
     }
 
-    loadElections(selectedSchool.id);
+    await loadElections(selectedSchool.id);
     resetForm();
   };
 
@@ -225,17 +236,17 @@ function AdminDashboard() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this election? This cannot be undone.')) {
-      Storage.deleteElection(id);
-      loadElections(selectedSchool?.id);
+      await Storage.deleteElection(id);
+      await loadElections(selectedSchool?.id);
     }
   };
 
-  const handleSetCurrent = (id: string) => {
-    Storage.setCurrentElection(id);
+  const handleSetCurrent = async (id: string) => {
+    await Storage.setCurrentElection(id);
     votingSystem.setCurrentElection(id);
-    loadElections(selectedSchool?.id);
+    await loadElections(selectedSchool?.id);
   };
 
   const handleLogout = () => {
@@ -401,10 +412,10 @@ function AdminDashboard() {
               ) : (
                 filteredElections.map((election) => {
                   const migrated = Storage.migrateLegacyElection(election);
-                  const isActive = new Date() >= new Date(election.startDate) && 
+                  const isActive = new Date() >= new Date(election.startDate) &&
                                   new Date() <= new Date(election.endDate);
-                  const isCurrent = Storage.getCurrentElectionId() === election.id;
-                  const voterCount = Storage.getElectionVoters(election.id, currentSchoolId).length;
+                  const isCurrent = currentElectionId === election.id;
+                  const voterCount = voterCounts[election.id] || 0;
                   const totalPositions = migrated.positions?.length || 0;
                   const totalCandidates = migrated.positions?.reduce((sum, p) => sum + p.candidates.length, 0) || 0;
 

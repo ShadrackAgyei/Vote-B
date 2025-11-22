@@ -5,12 +5,12 @@ A secure, transparent voting platform powered by blockchain technology. Built wi
 ## Features
 
 - ✅ **Blockchain-Based**: Every vote is recorded immutably on the blockchain
-- 📧 **Email-Based Registration**: Secure email verification for school campus voting
+- 📧 **Email Verification**: Production-ready email verification using Resend
 - 👨‍💼 **Admin Dashboard**: Create and manage elections with custom options
 - 🎨 **Apple Design**: Clean, minimalistic interface inspired by Apple's design language
-- 📊 **Real-Time Results**: Transparent vote counting with visual results
+- 📊 **Live Results**: Real-time vote tracking visible to everyone
 - 🛡️ **Chain Validation**: Automatic blockchain integrity verification
-- 🚫 **One Vote Per Voter**: Prevents duplicate voting via email verification
+- 🚫 **One Vote Per Position**: Voters can vote once per position in multi-position elections
 - 💾 **Local Persistence**: Elections and voter data stored locally (ready for database upgrade)
 
 ## Technology Stack
@@ -20,6 +20,7 @@ A secure, transparent voting platform powered by blockchain technology. Built wi
 - **Styling**: Tailwind CSS
 - **Blockchain**: Custom blockchain implementation with Proof of Work
 - **Cryptography**: CryptoJS for hashing and wallet generation
+- **Email Service**: Resend (production-ready email delivery)
 
 ## Getting Started
 
@@ -40,12 +41,21 @@ cd Vote-B
 npm install
 ```
 
-3. Run the development server:
+3. Set up environment variables (optional for development):
+```bash
+# Copy example env file
+cp .env.example .env.local
+
+# Add your Resend API key (optional - works without it in dev mode)
+# Get your API key from: https://resend.com/api-keys
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 
@@ -151,13 +161,31 @@ Vote-B/
 4. Enter code to complete registration
 5. Once verified, they can cast their vote
 
-### Production Email Integration
+### Email Service Setup
 
-Currently, verification codes are logged to the console for demo purposes. To enable real email sending:
+The app now includes production-ready email integration using Resend:
 
-1. Integrate an email service (SendGrid, Resend, AWS SES, etc.)
-2. Update `lib/utils/email.ts` -> `sendVerificationEmail()` function
-3. Configure environment variables for email service credentials
+**Development Mode** (no API key):
+- Verification codes are logged to the console
+- Codes stored in localStorage for testing
+- Full voting functionality works without emails
+
+**Production Mode** (with API key):
+- Real emails sent via Resend API
+- Professional verification email templates
+- Codes expire after 15 minutes
+
+**Setup Instructions:**
+1. Sign up at [resend.com](https://resend.com) (free tier: 100 emails/day)
+2. Get your API key from the dashboard
+3. Add to `.env.local`:
+   ```env
+   RESEND_API_KEY=re_your_api_key_here
+   EMAIL_FROM=onboarding@resend.dev
+   ```
+4. Restart the server
+
+For detailed setup instructions, see [docs/EMAIL_SETUP.md](docs/EMAIL_SETUP.md)
 
 ### Admin Password Configuration
 

@@ -27,16 +27,16 @@ export default function Home() {
     loadElectionData();
   }, []);
 
-  const loadElectionData = () => {
+  const loadElectionData = async () => {
     setLoading(true);
-    
+
     // Get current school
     const school = SchoolManager.getCurrentSchool();
     setCurrentSchool(school);
-    
+
     // Load elections from storage (filtered by school)
-    const storedElections = Storage.getAllElections(school?.id);
-    
+    const storedElections = await Storage.getAllElections(school?.id);
+
     if (storedElections.length === 0) {
       setLoading(false);
       return;
@@ -46,7 +46,7 @@ export default function Home() {
     storedElections.forEach(storedElection => {
       // Migrate legacy elections
       const migrated = Storage.migrateLegacyElection(storedElection);
-      
+
       const election: Election = {
         id: migrated.id,
         title: migrated.title,
@@ -55,10 +55,10 @@ export default function Home() {
         schoolId: migrated.schoolId,
         startDate: new Date(migrated.startDate),
         endDate: new Date(migrated.endDate),
-        isActive: new Date() >= new Date(migrated.startDate) && 
+        isActive: new Date() >= new Date(migrated.startDate) &&
                   new Date() <= new Date(migrated.endDate),
       };
-      
+
       votingSystem.createElection(
         election.id,
         election.title,
@@ -71,7 +71,7 @@ export default function Home() {
     });
 
     // Set current election
-    const currentId = Storage.getCurrentElectionId();
+    const currentId = await Storage.getCurrentElectionId();
     if (currentId) {
       votingSystem.setCurrentElection(currentId);
       const election = votingSystem.getElection(currentId);
@@ -82,8 +82,8 @@ export default function Home() {
       if (savedEmail && election) {
         const normalizedEmail = normalizeEmail(savedEmail);
         const schoolId = school?.id;
-        
-        if (Storage.isVoterVerified(normalizedEmail, currentId, school?.id)) {
+
+        if (await Storage.isVoterVerified(normalizedEmail, currentId, school?.id)) {
           setVoterEmail(normalizedEmail);
           
           // Check which positions the voter has voted for
@@ -122,14 +122,14 @@ export default function Home() {
     }
   };
 
-  const handleVote = (positionId: string, candidateId: string): boolean => {
+  const handleVote = async (positionId: string, candidateId: string): Promise<boolean> => {
     if (!voterEmail || !currentElection) return false;
-    
+
     const normalizedEmail = normalizeEmail(voterEmail);
     const schoolId = currentSchool?.id;
-    
+
     // Double-check voter is verified
-    if (!Storage.isVoterVerified(normalizedEmail, currentElection.id, schoolId)) {
+    if (!(await Storage.isVoterVerified(normalizedEmail, currentElection.id, schoolId))) {
       alert('Please complete email verification first.');
       return false;
     }
