@@ -5,11 +5,13 @@ A secure, transparent voting platform powered by blockchain technology. Built wi
 ## Features
 
 - ✅ **Blockchain-Based**: Every vote is recorded immutably on the blockchain
-- 🔐 **Secure Wallet System**: Cryptographically secure wallet addresses for each voter
+- 📧 **Email-Based Registration**: Secure email verification for school campus voting
+- 👨‍💼 **Admin Dashboard**: Create and manage elections with custom options
 - 🎨 **Apple Design**: Clean, minimalistic interface inspired by Apple's design language
 - 📊 **Real-Time Results**: Transparent vote counting with visual results
 - 🛡️ **Chain Validation**: Automatic blockchain integrity verification
-- 🚫 **One Vote Per Voter**: Prevents duplicate voting
+- 🚫 **One Vote Per Voter**: Prevents duplicate voting via email verification
+- 💾 **Local Persistence**: Elections and voter data stored locally (ready for database upgrade)
 
 ## Technology Stack
 
@@ -53,11 +55,23 @@ Vote-B/
 │   ├── layout.tsx       # Root layout
 │   ├── page.tsx         # Home page
 │   └── globals.css      # Global styles
+├── app/
+│   ├── admin/
+│   │   └── page.tsx     # Admin dashboard for election management
+│   ├── page.tsx         # Main voting page
+│   ├── layout.tsx       # Root layout
+│   └── globals.css      # Global styles
 ├── components/          # React components
-│   ├── Header.tsx       # App header with wallet info
+│   ├── Header.tsx       # App header with voter info
 │   ├── VotingInterface.tsx  # Voting UI
 │   ├── Results.tsx      # Results display
-│   └── WalletSetup.tsx  # Wallet creation
+│   └── VoterRegistration.tsx  # Email-based voter registration
+├── lib/
+│   ├── storage/         # Data persistence layer
+│   │   └── Storage.ts   # LocalStorage wrapper for elections & voters
+│   ├── utils/
+│   │   ├── wallet.ts    # Wallet utilities (legacy, can be removed)
+│   │   └── email.ts     # Email validation and verification
 ├── lib/                 # Core logic
 │   ├── blockchain/      # Blockchain implementation
 │   │   ├── Block.ts     # Block class
@@ -71,47 +85,68 @@ Vote-B/
 
 ## How It Works
 
+### Admin Dashboard (`/admin`)
+
+1. **Create Elections**: Set election title, description, and voting options
+2. **Configure Options**: Add multiple voting options with descriptions
+3. **Set Dates**: Define start and end dates for each election
+4. **Manage Elections**: Edit, delete, or set active elections
+5. **View Statistics**: See registered voter counts per election
+
+### Voter Registration & Voting Flow
+
+1. **Email Registration**: Voters enter their school email address
+2. **Email Verification**: Verification code sent to email (check console in demo)
+3. **Vote Casting**: Registered voters select an option and cast vote
+4. **Block Mining**: Vote is recorded as a blockchain transaction
+5. **Results**: Real-time results calculated from blockchain
+
 ### Blockchain Implementation
 
 - Each vote is recorded as a transaction in a block
 - Blocks are linked together using cryptographic hashes
 - Proof of Work consensus ensures block validity
 - The chain validates its own integrity
-
-### Voting Flow
-
-1. **Wallet Creation**: User creates a secure wallet address
-2. **Election Setup**: An election is created with voting options
-3. **Voting**: User selects an option and casts their vote
-4. **Block Mining**: The vote is added to a block and mined
-5. **Results**: Results are calculated from the blockchain
+- Email addresses used as voter identifiers
 
 ### Security Features
 
-- Each voter can only vote once (checked by wallet address)
+- Email-based voter registration with verification
+- Each voter can only vote once per election (checked by email)
 - Votes are immutable once recorded on the blockchain
 - Cryptographic hashing ensures data integrity
 - Chain validation prevents tampering
+- Voter verification required before voting
 
-## Customization
+## Usage
 
 ### Creating a New Election
 
-Edit `app/page.tsx` and modify the election creation:
+1. Navigate to `/admin` page
+2. Click "Create New Election"
+3. Fill in:
+   - Election Title
+   - Description (optional)
+   - Voting Options (add at least 2)
+   - Start and End Date/Time
+4. Click "Create Election"
+5. Set the election as "Active" to make it available for voting
 
-```typescript
-votingSystem.createElection(
-  'election-id',
-  'Election Title',
-  'Election description',
-  [
-    { id: 'option1', label: 'Option 1', description: 'Description' },
-    { id: 'option2', label: 'Option 2', description: 'Description' },
-  ],
-  startDate,
-  endDate
-);
-```
+### Voter Registration
+
+1. Voters go to the home page (`/`)
+2. Enter their school email address
+3. Check email (or browser console in demo) for verification code
+4. Enter code to complete registration
+5. Once verified, they can cast their vote
+
+### Production Email Integration
+
+Currently, verification codes are logged to the console for demo purposes. To enable real email sending:
+
+1. Integrate an email service (SendGrid, Resend, AWS SES, etc.)
+2. Update `lib/utils/email.ts` -> `sendVerificationEmail()` function
+3. Configure environment variables for email service credentials
 
 ### Adjusting Blockchain Difficulty
 

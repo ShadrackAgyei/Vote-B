@@ -1,15 +1,15 @@
 'use client';
 
-import { Wallet } from '@/lib/utils/wallet';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 interface HeaderProps {
-  wallet: Wallet | null;
-  onNewWallet: () => void;
+  voterEmail: string | null;
+  onLogout: () => void;
   blockCount: number;
 }
 
-export default function Header({ wallet, onNewWallet, blockCount }: HeaderProps) {
+export default function Header({ voterEmail, onLogout, blockCount }: HeaderProps) {
   return (
     <header className="mb-12">
       <div className="flex items-center justify-between mb-6">
@@ -17,23 +17,28 @@ export default function Header({ wallet, onNewWallet, blockCount }: HeaderProps)
           <h1 className="text-4xl font-bold mb-2">Vote-B</h1>
           <p className="text-muted">Secure blockchain voting platform</p>
         </div>
-        {wallet && (
-          <button
-            onClick={onNewWallet}
-            className="btn btn-ghost text-sm"
-          >
-            New Wallet
-          </button>
-        )}
+        <div className="flex gap-3">
+          <Link href="/admin" className="btn btn-ghost text-sm">
+            Admin
+          </Link>
+          {voterEmail && (
+            <button
+              onClick={onLogout}
+              className="btn btn-ghost text-sm"
+            >
+              Logout
+            </button>
+          )}
+        </div>
       </div>
 
-      {wallet && (
+      {voterEmail && (
         <div className="card bg-gradient-to-r from-primary/5 to-secondary/5">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
-              <div className="text-sm text-muted mb-1">Wallet Address</div>
-              <div className="font-mono text-sm font-semibold break-all">
-                {wallet.getAddress()}
+              <div className="text-sm text-muted mb-1">Registered Voter</div>
+              <div className="text-sm font-semibold break-all">
+                {voterEmail}
               </div>
             </div>
             <div className="text-right">
